@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Futuristic Snake Game</title>
+  <style>
+    body {
+      background-color: #0f0f0f;
+      color: #00ff00;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #game-board {
+      background-color: #1f1f1f;
+      border: 2px solid yellow;
+      box-shadow: 0 0 20px white;
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      grid-template-rows: repeat(20, 1fr);
+      height: 80vmin;
+      width: 80vmin;
+      max-width: 100%;
+      max-height: 80%;
+    }
+
+    .snake {
+      background-color: #00ff00;
+      border-radius: 5px;
+    }
+
+    .food {
+      background-color: #ff0000;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    }
+
+    #controller {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin-top: 20px;
+    }
+
+    .control-btn {
+      position: absolute;
+      background-color: white;
+      border: none;
+      color: #0f0f0f;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 16px;
+      box-shadow: 0 0 10px red;
+      cursor: pointer;
+    }
+
+    #up-btn {
+      top: 10;
+      left: 50%;
+      transform: translate(-50%, 0);
+    }
+
+    #down-btn {
+      bottom: 0;
+      left: 50%;
+      transform: translate(-50%, 0);
+    }
+
+    #left-btn {
+      top: 50%;
+      left: 0;
+      transform: translate(0, -50%);
+    }
+
+    #right-btn {
+      top: 50%;
+      right: 0;
+      transform: translate(0, -50%);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-board"></div>
+  <div id="controller">
+    <button class="control-btn" id="up-btn">&#8593;</button>
+    <button class="control-btn" id="down-btn">&#8595;</button>
+    <button class="control-btn" id="left-btn">&#8592;</button>
+    <button class="control-btn" id="right-btn">&#8594;</button>
+  </div>
+
+  <script>
+    const gameBoard = document.getElementById('game-board');
+    const boardSize = 20;
+    let snake = [{ x: 10, y: 10 }];
+    let food = getRandomFood();
+    let direction = { x: 0, y: 0 };
+    let lastRenderTime = 0;
+    let gameOver = false;
+
+    const upBtn = document.getElementById('up-btn');
+    const downBtn = document.getElementById('down-btn');
+    const leftBtn = document.getElementById('left-btn');
+    const rightBtn = document.getElementById('right-btn');
+
+    upBtn.addEventListener('click', () => changeDirection({ x: 0, y: -1 }));
+    downBtn.addEventListener('click', () => changeDirection({ x: 0, y: 1 }));
+    leftBtn.addEventListener('click', () => changeDirection({ x: -1, y: 0 }));
+    rightBtn.addEventListener('click', () => changeDirection({ x: 1, y: 0 }));
+
+    requestAnimationFrame(main);
+
+    function main(currentTime) {
+      if (gameOver) {
+        alert(`Game Over! Your score is ${snake.length - 1}`);
+        snake = [{ x: 10, y: 10 }];
+        food = getRandomFood();
+        direction = { x: 0, y: 0 };
+        gameOver = false;
+      }
+
+      requestAnimationFrame(main);
+      const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
+      if (secondsSinceLastRender < 0.2) return;
+
+      lastRenderTime = currentTime;
+      updateSnake();
+      renderGame();
+    }
+
+    function updateSnake() {
+      const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+      snake.unshift(head);
+
+      if (isEatingFood(head)) {
+        food = getRandomFood();
+      } else {
+        snake.pop();
+      }
+
+      if (isOutOfBounds(head) || isIntersectingItself(head)) {
+        gameOver = true;
+      }
+    }
+
+    function renderGame() {
+      gameBoard.innerHTML = '';
+
+      snake.forEach(segment => {
+        const snakeElement = document.createElement('div');
+        snakeElement.style.gridRowStart = segment.y + 1;
+        snakeElement.style.gridColumnStart = segment.x + 1;
+        snakeElement.classList.add('snake');
+        gameBoard.appendChild(snakeElement);
+      });
+
+      const foodElement = document.createElement('div');
+      foodElement.style.gridRowStart = food.y + 1;
+      foodElement.style.gridColumnStart = food.x + 1;
+      foodElement.classList.add('food');
+      gameBoard.appendChild(foodElement);
+    }
+
+    function isEatingFood(head) {
+      return head.x === food.x && head.y === food.y;
+    }
+
+    function getRandomFood() {
+      let x, y;
+      do {
+        x = Math.floor(Math.random() * boardSize);
+        y = Math.floor(Math.random() * boardSize);
+      } while (snake.some(segment => segment.x === x && segment.y === y));
+      return { x, y };
+    }
+
+    function isOutOfBounds(head) {
+      return head.x < 0 || head.x >= boardSize || head.y < 0 || head.y >= boardSize;
+    }
+
+    function isIntersectingItself(head) {
+      return snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y);
+    }
+
+    function changeDirection(newDirection) {
+      const goingUp = direction.y === -1;
+      const goingDown = direction.y === 1;
+      const goingRight = direction.x === 1;
+      const goingLeft = direction.x === -1;
+
+      switch (true) {
+        case (newDirection.x === -1 && !goingRight):
+          direction = newDirection;
+          break;
+        case (newDirection.x === 1 && !goingLeft):
+          direction = newDirection;
+          break;
+        case (newDirection.y === -1 && !goingDown):
+          direction = newDirection;
+          break;
+        case (newDirection.y === 1 && !goingUp):
+          direction = newDirection;
+          break;
+      }
+    }
+  </script>
+</body>
+</html>
